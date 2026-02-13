@@ -1,0 +1,52 @@
+% SIGIR 2026 Resources Track (6-page limit) submission version.
+% - Single-anonymous (list author names).
+% - 6 pages + unlimited references. Avoid appendices in the PDF.
+
+\documentclass[sigconf,natbib=true]{acmart}
+% If the chairs explicitly require review mode, switch to:
+% \documentclass[sigconf,natbib=true,review]{acmart}
+
+\setcopyright{none}
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{graphicx}
+
+\title[EdgeQA]{EdgeQA: Model-Aware Synthesis of Unknown and Brittle Knowledge Questions from Unlabeled Text with Knowledge Coverage Evaluation}
+
+\author{Yuli Zhang}
+\affiliation{%
+  \institution{Beijing University of Posts and Telecommunications}
+  \city{Beijing}
+  \country{China}
+}
+\email{zhangyuli@bupt.edu.cn}
+\renewcommand{\shortauthors}{Zhang}
+
+\begin{abstract}
+Large language models (LLMs) perform well on many knowledge-intensive tasks, yet they remain unreliable in domains where their parametric knowledge is incomplete, long-tailed, or compositionally expressed.
+We present \textbf{EdgeQA}, an \emph{API-only}, model-aware pipeline that converts unlabeled corpora into evidence-grounded QA pairs targeting \emph{unknown} and \emph{brittle} knowledge of a specified target model, and selects a budgeted subset to maximize \emph{document}, \emph{knowledge-unit}, and \emph{reasoning-type} coverage.
+We additionally introduce \textbf{EdgeCoverBench}, a coverage-aware stress-test benchmark with paraphrases, near-miss counterfactuals, and unanswerable items to evaluate robustness and abstention.
+In this resource release, we instantiate EdgeQA on two CC-BY textbooks (Open Logic Project; OpenStax University Physics), export BEIR-style retrieval collections (queries/corpus/qrels), and provide a coverage-and-cost evaluation suite for \textsc{DeepSeek-V3.2} (\texttt{deepseek-chat}) settings.
+\end{abstract}
+
+\keywords{information retrieval, evaluation, datasets, large language models, question answering}
+
+% CCS (often required by ACM venues)
+\ccsdesc[500]{Information systems~Question answering}
+\ccsdesc[500]{Information systems~Information retrieval}
+
+\begin{document}
+\maketitle
+
+\input{sections/resources_paper}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}
+

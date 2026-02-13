@@ -1,0 +1,263 @@
+\section{EdgeQA: Model-Aware QA Resource Construction}
+\label{sec:edgeqa}
+
+\subsection{Problem setup}
+Let $\mathcal{C}=\{d_i\}_{i=1}^D$ be an unlabeled corpus, segmented into passages $\mathcal{P}=\{p_j\}_{j=1}^P$ (e.g., paragraphs).
+A QA instance is $q=(x,y,E,t)$, where $x$ is the question, $y$ is the answer, $E\subseteq\mathcal{P}$ is the evidence set (one or more passages), and $t$ is a reasoning/operator label.
+Given a target model $M$ (black-box API), we seek a QA set $\mathcal{Q}=\{q_k\}_{k=1}^N$ that satisfies:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Grounding:} $y$ is supported/entailed by $E$.
+  \item \textbf{Edge knowledge:} $x$ targets unknown/brittle knowledge for $M$ in closed-book mode.
+  \item \textbf{Coverage:} $\mathcal{Q}$ spans $\mathcal{C}$ broadly under a budget.
+\end{enumerate}
+
+\subsection{Inputs, outputs, and record schema}
+EdgeQA takes as input an unlabeled corpus $\mathcal{C}$, a target model $M$, and user-set budgets (candidate passage budget, generation budget, and final QA budget $N$).
+It outputs a JSONL-style dataset where each example stores the QA pair, evidence mapping back into the corpus, and metadata required for coverage accounting and evaluation.
+Table~\ref{tab:record_schema} summarizes a practical record schema.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}p{2.9cm}p{6.7cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Description} \\\midrule
+\texttt{question} & Question text $x$ \\
+\texttt{answer} & Reference answer $y$ (short, grounded) \\
+\texttt{evidence} & List of evidence items (doc/passage ids and offsets); supports rehydration from the raw corpus \\
+\texttt{evidence\_span} & Minimal supporting span (character offsets or sentence indices) \\
+\texttt{reason\_type} & Reasoning/operator label $t$ (manual or classifier) \\
+\texttt{units} & Knowledge-unit ids covered by this QA (KG triples / atomic facts / structured units) \\
+\texttt{scores} & Edge signals (closed-book correctness, sampling entropy, paraphrase agreement, verifier score) \\
+\texttt{filters} & Filter decisions (groundedness, ambiguity, near-duplicate, copy/triviality) \\
+\bottomrule
+\end{tabular}
+\caption{Suggested EdgeQA example schema (fields can be omitted when unavailable).}
+\label{tab:record_schema}
+\end{table}
+
+\subsection{Pipeline overview}
+Figure~\ref{fig:pipeline} summarizes the pipeline.
+EdgeQA comprises (i) knowledge-rich passage mining, (ii) candidate QA generation, (iii) model-aware edge scoring, (iv) grounding and quality filtering, and (v) coverage-aware budgeted selection.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners, align=center, inner sep=4pt},
+  arrow/.style={-Latex, thick},
+  node distance=0.8cm and 0.9cm
+]
+\node[box] (corp) {Unlabeled\\Corpus $\mathcal{C}$};
+\node[box, right=of corp] (mine) {Mine\\knowledge-rich\\passages};
+\node[box, right=of mine] (gen) {Generate\\candidate QA\\(with evidence)};
+\node[box, right=of gen] (score) {Score\\unknownness/\\brittleness\\w.r.t.\ $M$};
+\node[box, right=of score] (filter) {Filter\\grounding\\\& quality};
+\node[box, right=of filter] (select) {Select $N$\\QA to\\maximize coverage};
+\draw[arrow] (corp) -- (mine);
+\draw[arrow] (mine) -- (gen);
+\draw[arrow] (gen) -- (score);
+\draw[arrow] (score) -- (filter);
+\draw[arrow] (filter) -- (select);
+\end{tikzpicture}
+\caption{EdgeQA pipeline: corpus $\rightarrow$ model-aware edge scoring $\rightarrow$ grounding filtering $\rightarrow$ coverage-aware selection.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Knowledge-rich passage mining}
+We prioritize passages likely to contain query-worthy domain knowledge.
+We compute a salience score $s(p)$ with interpretable features (entity density, definitional cues, numeric constraints, term rarity) and optionally a topic coverage component to avoid topical collapse:
+\begin{equation}
+s(p) = \alpha\,\textsc{EntityDen}(p) + \beta\,\textsc{RelCue}(p) + \gamma\,\textsc{Rarity}(p) + \delta\,\textsc{TopicRep}(p).
+\end{equation}
+We then select a candidate set $\mathcal{P}_0$ by top-$K$ scoring or stratified sampling across clusters.
+
+\subsection{Candidate QA generation}
+For each $p\in \mathcal{P}_0$, a generator model $G$ produces one or more QA candidates $(x,y)$ along with explicit evidence spans.
+We support two generation modes:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Single-hop:} $E=\{p\}$, answerable within one passage.
+  \item \textbf{Multi-hop:} select an evidence chain $E=\{p^{(1)},p^{(2)}\}$ via entity overlap or similarity, then generate a question requiring joint evidence.
+\end{enumerate}
+To enable downstream coverage accounting, each candidate also includes evidence identifiers and optional reasoning-type labels.
+
+\subsection{Model-aware edge scoring}
+We define ``edge'' questions as those that are \emph{unknown} or \emph{brittle} for the target model $M$ in closed-book mode.
+Our scoring uses multiple behavior-based signals.
+
+\paragraph{Closed-book failure.}
+Let $\hat{y}^{cb}=M(x)$ be the closed-book answer (no evidence).
+Define $\textsc{CB}(x)=\mathbb{1}[\hat{y}^{cb}\approx y]$, where $\approx$ is exact match or judged semantic equivalence.
+
+\paragraph{Sampling inconsistency.}
+We sample $m$ outputs from $M$ for the same $x$ under stochastic decoding and compute semantic entropy over clustered answers:
+\begin{equation}
+H_s(x) = -\sum_{c\in \mathcal{C}(x)} p_c \log p_c,\quad p_c=\frac{|c|}{m}.
+\end{equation}
+This follows the idea that sample consistency provides a proxy for confidence in black-box LLMs~\citep{lyu2024sampleconsistency}.
+
+\paragraph{Paraphrase inconsistency.}
+We generate $k$ meaning-preserving paraphrases $\{x^{(i)}\}_{i=1}^k$ and obtain closed-book answers $\hat{y}^{(i)}=M(x^{(i)})$.
+To reduce dependence on a single ``anchor'' answer, we measure pairwise agreement:
+\begin{equation}
+A_p(x)=\frac{2}{k(k-1)}\sum_{1\le i<j\le k} \mathbb{1}[\hat{y}^{(i)}\approx \hat{y}^{(j)}].
+\end{equation}
+Paraphrase inconsistency is substantial for factual probing~\citep{elazar2021pararel} and reasoning~\citep{srikanth2024paraphrastic}.
+
+\paragraph{Evidence-based verification.}
+Given evidence $E$, we obtain $\hat{y}^{ctx}=M(x\mid E)$ and a verifier score $V(x,y,E)\in[0,1]$ checking whether $y$ is supported by $E$.
+Verification can be implemented via NLI-style entailment checks or LLM-based judging, inspired by attribution and factuality work~\citep{gao2023rarr,min2023factscore}.
+In our design, $V$ is primarily used as a \emph{grounding filter} (Sec.~\ref{sec:filtering}), rather than as an ``edge-ness'' signal.
+
+\paragraph{Unified edge score.}
+We combine behavior-based signals into an edge score:
+\begin{equation}
+U(x) = w_1 (1-\textsc{CB}(x)) + w_2 H_s(x) + w_3(1-A_p(x)).
+\label{eq:edge_score}
+\end{equation}
+We keep candidates with $U(x)\ge \tau$ and that pass grounding/quality filters.
+As an optional extension, we can calibrate $\tau$ to control error rates using conformal prediction ideas for LLM uncertainty~\citep{wang2024conu}.
+
+\subsection{Filtering for grounding, answerability, and ambiguity}
+\label{sec:filtering}
+Synthetic QA resources often fail due to weak grounding.
+We apply multi-stage filtering:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Answerability with evidence:} require $\hat{y}^{ctx}\approx y$ and/or $V(x,y,E)$ above a threshold.
+  \item \textbf{Grounding:} require minimal supporting spans and agreement between $y$ and the evidence snippet.
+  \item \textbf{Ambiguity:} remove questions with multiple plausible answers not disambiguated by $E$.
+  \item \textbf{Trivial copy questions:} remove questions that overly copy the evidence (e.g., high lexical overlap between $x$ and the evidence span, or template-like extractive prompts).
+\end{enumerate}
+
+\subsection{Coverage-aware budgeted selection}
+After filtering, we obtain a pool $\mathcal{Q}_{pool}$.
+Given a final QA budget $N$, we select $\mathcal{Q}\subseteq\mathcal{Q}_{pool}$ to maximize coverage while penalizing redundancy:
+\begin{equation}
+\max_{|\mathcal{Q}|=N}\; F(\mathcal{Q})=
+\lambda_d\,\textsc{DocCov}(\mathcal{Q})+\lambda_u\,\textsc{UnitCov}(\mathcal{Q})+\lambda_r\,\textsc{ReasonCov}(\mathcal{Q})
+-\lambda_{dup}\,\textsc{Redundancy}(\mathcal{Q}).
+\end{equation}
+Coverage terms are set-coverage-like and often exhibit diminishing returns.
+When $F$ is monotone submodular (e.g., pure set coverage), a greedy selector provides a $(1-1/e)$ approximation guarantee; in practice, greedy remains a scalable heuristic.
+
+\paragraph{Unknownness-purity constraint (optional).}
+Some applications require the selected set to contain at least a fraction $\rho$ of \emph{unknown} items (Sec.~\ref{sec:metrics_unknown_brittle}).
+We support a simple proportion constraint, e.g.,
+$\frac{1}{|\mathcal{Q}|}\sum_{q\in\mathcal{Q}}\mathbb{1}[q\text{ is unknown}]\ge\rho$, implemented by constrained greedy or two-pool selection.
+
+\begin{algorithm}[t]
+\caption{EdgeQA construction (high-level)}\label{alg:edgeqa}
+\begin{algorithmic}[1]
+\Require Corpus $\mathcal{C}$, target model $M$, generator $G$, budget $N$
+\Ensure QA set $\mathcal{Q}$
+
+\State Segment $\mathcal{C}$ into passages $\mathcal{P}$
+\State Mine candidate passages $\mathcal{P}_0 \subseteq \mathcal{P}$ using salience $s(p)$
+\State Initialize empty pool $\mathcal{Q}_{pool}\leftarrow \emptyset$
+\For{each passage (or chain) $E$ from $\mathcal{P}_0$}
+  \State Generate candidates $\{(x,y,t)\}$ from $G$ conditioned on $E$
+  \For{each candidate $(x,y,t)$}
+    \State Compute edge score $U(x)$ w.r.t.\ $M$ (closed-book, sampling, paraphrase)
+    \If{$U(x)\ge\tau$ and passes grounding/ambiguity filters}
+      \State Add $q=(x,y,E,t)$ to $\mathcal{Q}_{pool}$
+    \EndIf
+  \EndFor
+\EndFor
+\State Extract knowledge units $\mathcal{U}$ from $\mathcal{C}$ (Sec.~\ref{sec:unitcov})
+\State Select $\mathcal{Q}\subseteq \mathcal{Q}_{pool}$, $|\mathcal{Q}|=N$ by greedy maximization of $F(\mathcal{Q})$
+\State \Return $\mathcal{Q}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Knowledge coverage evaluation protocol}
+We evaluate QA sets as representations of corpus/domain knowledge, complementing task accuracy.
+Table~\ref{tab:metrics} summarizes the proposed metrics.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}p{2.6cm}p{5.2cm}p{2.9cm}@{}}
+\toprule
+\textbf{Metric} & \textbf{What it measures} & \textbf{Implementation notes} \\\midrule
+Document coverage & Fraction of passages exercised by at least one QA evidence set & Requires evidence mapping $E(q)$ \\
+Knowledge-unit coverage & Fraction of extracted units (triples / atomic facts / structured units) covered by QA & Report multiple instantiations; analyze extractor noise \\
+Reasoning-type coverage & Coverage/diversity over reasoning operators & Requires taxonomy and labeling \\
+Unknownness purity & Closed-book failure but evidence-based success & Avoid circular judging; sample human audit \\
+Brittleness rate & Sampling/paraphrase inconsistency & Report by reasoning type \\
+Grounding pass rate & Verifier + human check on support & Use conservative thresholds \\
+\bottomrule
+\end{tabular}
+\caption{Coverage and quality metrics for evaluating a synthetic QA set beyond SFT gains.}
+\label{tab:metrics}
+\end{table}
+
+\subsubsection{Document-to-QA coverage}
+Let $\mathcal{P}$ be all passages and $E(q)$ evidence passages for QA $q$.
+\begin{equation}
+\textsc{DocCov}(\mathcal{Q})=\frac{|\{p\in\mathcal{P}: \exists q\in\mathcal{Q},\, p\in E(q)\}|}{|\mathcal{P}|}.
+\end{equation}
+We additionally report coverage concentration (entropy) and marginal coverage curves as $|\mathcal{Q}|$ increases.
+
+\subsubsection{Knowledge-unit coverage}
+\label{sec:unitcov}
+We use two instantiations and recommend reporting both.
+
+\paragraph{KG-style units.}
+Extract triples $(h,r,t)$ via OpenIE/relation extraction to define $\mathcal{U}_{KG}$.
+Define $\textsc{UnitCov}_{KG}(\mathcal{Q})=\frac{|\cup_{q\in\mathcal{Q}}\textsc{Units}_{KG}(q)|}{|\mathcal{U}_{KG}|}$.
+We also report entity-coverage and relation-coverage as diagnostics.
+
+\paragraph{Atomic-fact units.}
+Decompose passages into atomic facts, following factuality evaluation~\citep{min2023factscore}.
+Let $\mathcal{U}_{AF}$ be the set of atomic facts and define $\textsc{UnitCov}_{AF}$ analogously.
+To evaluate robustness, we recommend re-running unit extraction with different prompts/extractors and reporting coverage variance.
+
+\paragraph{Structured units for expert corpora.}
+Many expert corpora (math textbooks, statutes/regulations, and scientific guidelines) have strong intrinsic structure (e.g., Definition/Theorem/Article/Clause) that enables deterministic unit extraction.
+When such structure is available, we recommend reporting structured-unit coverage alongside KG-style and atomic-fact coverage.
+
+\subsubsection{Reasoning-type coverage}
+\label{sec:reasoncov}
+We define a reasoning taxonomy $\mathcal{T}$ and assign each QA a label $t(q)$ via a classifier and human audit.
+Table~\ref{tab:reason} gives a minimal taxonomy we found practical for coverage reporting.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}p{2.6cm}p{7.7cm}@{}}
+\toprule
+\textbf{Type} & \textbf{Example operator / requirement} \\\midrule
+Definition & ``What is X?'' grounded in definitional sentences \\
+Attribute / relation & ``What property does X have?''; entity--attribute mapping \\
+Comparison & ``Which is larger/earlier/more effective?''; pairwise compare \\
+Temporal / causal & ordering, prerequisite, cause--effect statements \\
+Numeric & arithmetic, threshold checks, unit conversion, count \\
+Derivation / proof & symbolic manipulation; proof-step reasoning grounded in text \\
+Multi-hop & requires combining evidence across $\ge 2$ passages \\
+\bottomrule
+\end{tabular}
+\caption{A minimal reasoning taxonomy for reporting reasoning-type coverage.}
+\label{tab:reason}
+\end{table}
+
+We report:
+(i) $\textsc{ReasonCov}(\mathcal{Q})=\frac{|\{t(q):q\in\mathcal{Q}\}|}{|\mathcal{T}|}$ and
+(ii) entropy over types as a diversity measure.
+We additionally stratify brittleness (sampling entropy/paraphrase agreement) by $t$ to identify fragile operators.
+
+\subsubsection{Unknownness and brittleness metrics}
+\label{sec:metrics_unknown_brittle}
+To avoid relying solely on downstream training gains, we directly measure:
+\begin{align}
+\textsc{UnknownPurity}(\mathcal{Q}) &= \frac{1}{|\mathcal{Q}|}\sum_{q\in\mathcal{Q}} \mathbb{1}[\textsc{CB}(x)=0 \wedge \textsc{CTX}(x,E)=1],\\
+\textsc{BrittleRate}(\mathcal{Q}) &= \frac{1}{|\mathcal{Q}|}\sum_{q\in\mathcal{Q}} \mathbb{1}[H_s(x)\ge h \;\vee\; A_p(x)\le a],
+\end{align}
+where $\textsc{CTX}(x,E)=\mathbb{1}[\hat{y}^{ctx}\approx y]$, and $h,a$ are fixed thresholds or percentiles.
+
+\paragraph{Implementation notes (draft).}
+To facilitate reproducibility, we recommend reporting:
+(i) passage segmentation policy,
+(ii) candidate passage budget $|\mathcal{P}_0|$,
+(iii) sampling settings ($m$ samples, temperature/top-$p$),
+(iv) paraphrase settings ($k$ paraphrases and validation rules),
+(v) answer equivalence function for $\approx$ (string match vs.\ judge model), and
+(vi) verification model/prompt, threshold, and audited error rate.

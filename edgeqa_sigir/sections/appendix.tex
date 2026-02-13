@@ -1,0 +1,130 @@
+\section{Prompt templates (abbreviated)}
+\label{app:prompts}
+We include simplified prompt sketches to facilitate reimplementation.
+
+\paragraph{QA generation (single-hop).}
+\begin{quote}\small
+Given the passage below, write \textbf{two} questions that can be answered \emph{only} using the passage. For each question, output a JSON object with:
+(i) \texttt{question}, (ii) \texttt{answer} (short, unambiguous), (iii) \texttt{evidence\_span} (minimal supporting sentences or character offsets), and (iv) \texttt{reason\_type} from a small taxonomy.
+Avoid yes/no questions and avoid copying long phrases from the evidence span.
+\\
+\textbf{Passage:} \dots
+\end{quote}
+
+\paragraph{Paraphrase generation (meaning-preserving).}
+\begin{quote}\small
+Rewrite the question in \textbf{two} meaning-preserving ways. Keep all constraints (numbers, quantifiers, conditions) unchanged. Do not add new information. Return JSON list of paraphrases.
+\end{quote}
+
+\paragraph{Fast verification (supported-by-evidence).}
+\begin{quote}\small
+Decide whether the proposed answer is fully supported by the evidence span.
+Return one of: \texttt{ENTAILED}, \texttt{CONTRADICTED}, \texttt{NOT\_ENOUGH\_INFO}.
+\\
+\textbf{Question:} \dots\\
+\textbf{Answer:} \dots\\
+\textbf{Evidence span:} \dots
+\end{quote}
+
+\paragraph{Near-miss counterfactual generation.}
+\begin{quote}\small
+Modify the canonical question by changing \textbf{exactly one} minimal constraint (e.g., flip a quantifier, change a single numeric threshold, remove one condition) such that the modified question becomes unanswerable from the same evidence or contradicted by it.
+Return JSON with the modified question and label (\texttt{UNANSWERABLE} or \texttt{CONTRADICTED}).
+\end{quote}
+
+\paragraph{Atomic fact decomposition (fallback units).}
+\begin{quote}\small
+Break the passage into a list of atomic, independently checkable facts.
+Each fact should contain a single relation/event with minimal qualifiers.
+Return as a JSON list of strings.
+\end{quote}
+
+\section{Concrete configuration (DeepSeek-V3.2)}
+\label{app:config}
+To make the resource usable out-of-the-box, we provide configuration files that specify models, decoding, thresholds, and budgets.
+Below is an abbreviated example (YAML-style) matching Table~\ref{tab:api_config} and Table~\ref{tab:default_config}:
+
+\begin{verbatim}
+models:
+  generator: deepseek-chat
+  target: deepseek-chat
+  verifier_fast: deepseek-chat
+  verifier_strict: deepseek-reasoner   # limited usage
+
+budgets:
+  token_budget_chat: 500000000         # non-thinking
+  token_budget_reasoner: 20000000      # thinking (limited)
+  passage_candidates: 20000            # |P0|
+  qa_per_passage: 2
+  multi_hop_rate: 0.25
+  final_N: [1000, 2000, 5000, 10000]
+
+decoding:
+  gen:          {temperature: 0.7, top_p: 0.9,  max_tokens: 256}
+  closed_book:  {temperature: 0.0, top_p: 1.0,  max_tokens: 64}
+  sample:       {temperature: 0.8, top_p: 0.95, max_tokens: 64, n: 4}
+  paraphrase:   {temperature: 0.8, top_p: 0.95, max_tokens: 192, k: 2}
+  verify:       {temperature: 0.0, top_p: 1.0,  max_tokens: 64}
+
+thresholds:
+  edge_tau: 0.60
+  verifier_entailment_tau: 0.80
+  max_evidence_tokens: 512
+
+selection:
+  lambdas: {doc: 1.0, unit: 1.0, reason: 0.5, redundancy: 0.2}
+  unknownness_min_frac: 0.50
+\end{verbatim}
+
+\section{Cost accounting}
+\label{app:cost}
+For each candidate QA, EdgeQA typically requires:
+(i) one evidence-grounded generation call,
+(ii) one closed-book answer call,
+and, for candidates that fail closed-book and pass basic gates,
+(iii) $m$ sampling calls and (iv) one paraphrase-generation call plus $k$ paraphrase-answer calls.
+We report total input/output tokens and provide cost--coverage curves (Sec.~\ref{sec:experiments}) so that users can compare construction methods under matched budgets.
+
+\section{Additional experimental results}
+\label{app:extra_results}
+We collect secondary analyses and larger tables/figures here to keep the main body within the SIGIR Resources page limits.
+All artifacts are reproducible from the released cached outputs and configuration files.
+
+\paragraph{Pool-only baselines.}
+\input{tables/tab_selection_baselines_10k}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/selection_baselines.pdf}
+\caption{DocCov curves for cost-free selection baselines on the shared EdgeQA candidate pool.}
+\label{fig:selection_baselines}
+\end{figure}
+
+\paragraph{Cheap retargeting from the same pool.}
+\input{tables/tab_retarget_qwen_pool}
+
+\paragraph{Retrieval baselines on BEIR-style exports.}
+\input{tables/tab_bm25}
+
+\paragraph{Brittleness and token accounting.}
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/brittleness_cdfs.pdf}
+\caption{Brittleness distributions for the released instantiations at $N{=}10k$ per corpus. We report sampling entropy ($H_s$) and paraphrase disagreement ($1-A_p$), and stratify by single-hop vs.\ multi-hop items.}
+\label{fig:brittleness_cdfs}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/token_breakdown.pdf}
+\caption{Total token usage across all cached API calls for the released instantiations (EdgeQA + EdgeCoverBench).}
+\label{fig:token_breakdown}
+\end{figure}
+
+\paragraph{EdgeCoverBench risk--coverage curves (abstention).}
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/edgecoverbench_risk_coverage_qwen_plus.pdf}
+\caption{Risk--coverage curves for \texttt{qwen-plus} under abstention on EdgeCoverBench. We sweep a confidence threshold and report risk ($1-\textsc{Acc}$) against coverage (fraction answered).}
+\label{fig:ecb_risk_coverage_qwen}
+\end{figure}

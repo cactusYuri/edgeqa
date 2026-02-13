@@ -1,0 +1,109 @@
+% SIGIR Resources Track (ACM sigconf) LaTeX template scaffold
+% -------------------------------------------------------------------
+% This is a lightweight ACM 'acmart' (sigconf) project intended for:
+% (1) migrating an existing draft into the SIGIR format, and
+% (2) iterating section-by-section without breaking compilation.
+%
+% Notes on anonymity:
+% - SIGIR 2026 Resources Track is single-anonymous (author names listed).
+% - Do NOT enable anonymous mode; fill in the real author list below.
+
+\documentclass[sigconf,natbib=true,review]{acmart}
+% \documentclass[sigconf,natbib=true,review,anonymous=true]{acmart}
+
+% For camera-ready (typically):
+% \documentclass[sigconf,natbib=true]{acmart}
+
+% Many conferences request suppressing ACM rights / ref-format blocks for review.
+\setcopyright{none}
+\settopmatter{printacmref=false} % hide ACM Reference Format block
+\renewcommand\footnotetextcopyrightpermission[1]{}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+% acmart already loads a math font package that conflicts with amssymb's \Bbbk.
+% Keep the dependency set minimal to avoid symbol redefinition errors.
+% \usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{enumitem}
+\usepackage{url}
+
+% Figures / diagrams
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+
+% Algorithms (used in the migrated draft)
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Optional: algorithms (uncomment if you used them in the draft)
+% \usepackage{algorithm}
+% \usepackage{algpseudocode}
+
+\title[EdgeQA]{EdgeQA: Model-Aware Synthesis of Unknown and Brittle Knowledge Questions from Unlabeled Text with Knowledge Coverage Evaluation}
+
+% -------------------------------------------------------------------
+% Authors
+% Replace with your real author list for single-blind tracks.
+% For double-anonymous, keep only '\author{Anonymous}' and remove affiliations.
+
+% Single-anonymous submission: list real authors.
+\author{Yuli Zhang}
+\affiliation{%
+  \institution{Beijing University of Posts and Telecommunications}
+  \city{Beijing}
+  \country{China}
+}
+\email{zhangyuli@bupt.edu.cn}
+
+\renewcommand{\shortauthors}{Zhang}
+
+% -------------------------------------------------------------------
+\begin{abstract}
+Large language models (LLMs) perform well on many knowledge-intensive tasks, yet they remain unreliable in domains where their parametric knowledge is incomplete, long-tailed, or compositionally expressed.
+Existing synthetic question--answer (QA) pipelines largely optimize for scale or downstream fine-tuning gains, often producing questions whose answers are already known to the target model and offering limited diagnostics of how well a synthetic QA set represents the underlying corpus.
+We present \textbf{EdgeQA}, an \emph{API-only}, model-aware pipeline that converts unlabeled corpora into evidence-grounded QA pairs \emph{targeting unknown and brittle knowledge of a specified target model}.
+EdgeQA mines knowledge-rich passages, generates candidates with minimal evidence spans, scores unknownness and brittleness via closed-book failure and inconsistency signals (sampling and paraphrases), filters for grounding and ambiguity, and selects a budgeted subset to maximize \emph{document}, \emph{knowledge-unit}, and \emph{reasoning-type} coverage.
+We additionally introduce \textbf{EdgeCoverBench}, a coverage-aware stress-test benchmark with paraphrases, near-miss counterfactuals, and unanswerable items to evaluate robustness and abstention.
+In this resource release, we instantiate EdgeQA on two CC-BY textbooks (Open Logic Project; OpenStax University Physics), export BEIR-style retrieval test collections (queries/corpus/qrels), and provide a coverage-and-cost evaluation suite with token-budget curves under \textsc{DeepSeek-V3.2} (\texttt{deepseek-chat} / \texttt{deepseek-reasoner}) settings.
+\end{abstract}
+
+\keywords{information retrieval, evaluation, datasets, large language models, question answering}
+
+% If you include CCS concepts, uncomment and fill these in.
+% \begin{CCSXML}
+% <ccs2012>
+%  <concept>
+%   <concept_id>10010147.10010257</concept_id>
+%   <concept_desc>Computing methodologies~Information extraction</concept_desc>
+%   <concept_significance>500</concept_significance>
+%  </concept>
+% </ccs2012>
+% \end{CCSXML}
+% \ccsdesc[500]{Computing methodologies~Information extraction}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/1_introduction}
+\input{sections/2_related_work}
+\input{sections/3_edgeqa}
+\input{sections/4_edgecoverbench}
+\input{sections/5_experiments}
+\input{sections/6_availability}
+\input{sections/7_limitations}
+\input{sections/8_ethics}
+\input{sections/9_conclusion}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+% NOTE: SIGIR 2026 Resources Track has a strict page limit; appendices count
+% toward the page budget. Consider moving Appendix content to supplementary.
+\appendix
+\input{sections/appendix}
+
+\end{document}

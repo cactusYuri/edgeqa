@@ -1,0 +1,61 @@
+run_name: qc_paper_single_full
+
+artifacts_dir: ../artifacts
+cache_dir: ../cache
+
+llm:
+  concurrency: 200
+  force_refresh: false
+  close_session: false
+  model_chat: deepseek-chat
+  model_reasoner: deepseek-chat
+
+edgeqa:
+  candidate_passages: 20000
+  qa_per_passage: 2
+  # Increase multi-hop source coverage to raise multi-hop yield in the final selection.
+  multi_hop_rate: 1.00
+  multi_hop_questions: 1
+  edge_tau: 0.60
+  weights: {w1: 1.0, w2: 1.0, w3: 1.0}
+  final_N: 10000
+  passage_workers: 200
+  pool_write_batch: 64
+  done_write_batch: 64
+
+edgecoverbench:
+  unit_workers: 200
+
+# Fast(er) decoding for the multi-hop augmentation pass:
+# - skip sampling/paraphrase (still keeps verifier + ctx_answer + entailment filters)
+decoding:
+  gen:           {temperature: 0.7, max_tokens: 256}
+  closed_book:   {temperature: 0.0, max_tokens: 64}
+  sample:        {temperature: 0.8, max_tokens: 64, m: 0}
+  paraphrase:    {temperature: 0.8, max_tokens: 192, k: 0}
+  verify_fast:   {temperature: 0.0, max_tokens: 64}
+  verify_strict: {temperature: 0.0, max_tokens: 128}
+
+filtering:
+  max_question_evidence_jaccard: 0.65
+  strict_verify: false
+  strict_verify_rate: 0.0
+
+equivalence:
+  use_llm: true
+
+selection:
+  lambdas: {doc: 1.0, unit: 1.0, reason: 0.5, redundancy: 0.2}
+  unknownness_min_frac: 0.5
+
+corpora:
+  olp:
+    source:
+      type: git
+      url: https://github.com/OpenLogicProject/OpenLogic.git
+      revision: master
+  osp:
+    source:
+      type: git
+      url: https://github.com/openstax/university-physics.git
+      revision: main

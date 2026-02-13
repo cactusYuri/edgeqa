@@ -1,0 +1,21 @@
+\section{Ethical Considerations}
+\label{sec:ethics}
+
+\paragraph{Data sources and licensing.}
+EdgeQA is designed to operate on openly available corpora.
+We recommend selecting sources with clear redistribution rights and recording per-document license metadata.
+When redistribution is not permitted, we release only derived QA artifacts and evidence pointers plus scripts to rehydrate evidence from upstream sources.
+
+\paragraph{Privacy and personally identifiable information (PII).}
+If the corpus contains PII, it should be filtered before QA generation.
+We recommend automatic PII detection and conservative removal policies.
+
+\paragraph{Potential misuse.}
+Because EdgeQA is model-aware, it can be used to systematically discover a target model's blind spots.
+This can benefit evaluation and safety work, but it could also be misused for targeted model attacks.
+We recommend responsible disclosure of high-risk failure modes and, when appropriate, rate-limiting or controlled access to high-risk subsets.
+
+\paragraph{Sensitive domains.}
+When applying EdgeQA to biomedical or legal corpora, one should avoid releasing items that look like personalized medical or legal advice.
+We recommend safety filtering for dosage/treatment plans, jurisdiction-specific legal advice prompts, and other potentially harmful content.
+Evaluation should clearly distinguish between model behavior and evidence-supported ground truth to avoid reinforcing hallucinations.

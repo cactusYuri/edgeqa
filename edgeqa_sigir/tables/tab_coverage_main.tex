@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Corpus} & \textbf{N} & \textbf{DocCov} & \textbf{UnitCov} & \textbf{Multi-hop} \\
+\midrule
+OLP & 1k & 0.224 & 0.311 & 1.000 \\
+OLP & 2k & 0.383 & 0.470 & 0.714 \\
+OLP & 5k & 0.744 & 0.690 & 0.388 \\
+OLP & 10k & 0.775 & 0.690 & 0.251 \\
+OSP & 1k & 0.109 & 0.231 & 0.941 \\
+OSP & 2k & 0.203 & 0.309 & 0.812 \\
+OSP & 5k & 0.396 & 0.456 & 0.427 \\
+OSP & 10k & 0.676 & 0.456 & 0.240 \\
+\bottomrule
+\end{tabular}
+\caption{Coverage and multi-hop composition for the released DeepSeek-V3.2 (chat) instantiations. DocCov/UnitCov are computed over corpus passages/units (Sec.~\ref{sec:unitcov}).}
+\label{tab:coverage_main}
+\end{table}

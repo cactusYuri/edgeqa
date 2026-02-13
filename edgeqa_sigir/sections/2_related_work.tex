@@ -1,0 +1,42 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Synthetic QA generation from unlabeled text.}
+Automated QA construction has been explored for data scaling and downstream gains.
+PAQ~\citep{lewis2021paq} generates ``probably asked'' questions to expand coverage relative to open-domain QA benchmarks such as Natural Questions~\citep{kwiatkowski2019naturalquestions} and SQuAD~2.0~\citep{rajpurkar2018squad2}.
+In contrast, EdgeQA explicitly conditions selection on a specified target model's unknownness and brittleness, and evaluates the resulting QA set via \emph{corpus coverage under budget} rather than only supervised fine-tuning gains.
+
+\paragraph{Knowledge probing and knowledge-intensive benchmarks with evidence.}
+LAMA~\citep{petroni2019lama} probes factual relations in pretrained models, while KILT~\citep{petroni2021kilt} unifies knowledge-intensive tasks under a shared evidence source and evaluates provenance.
+Our work is complementary: instead of evaluating model knowledge on a fixed benchmark, we \emph{construct} a benchmark from an arbitrary domain corpus and quantify how well it covers that corpus.
+
+\paragraph{Retrieval test collections and reusable IR benchmarks.}
+IR research relies on test collections with queries, corpora, and relevance judgments.
+BEIR~\citep{thakur2021beir} standardized a heterogeneous format for evaluating sparse and dense retrieval models across many datasets.
+Toolkits such as Pyserini~\citep{lin2021pyserini} further improve reproducibility by providing standardized sparse and dense retrieval pipelines.
+Because each grounded QA instance provides a natural query (question) and relevance signals (evidence passages), EdgeQA can be exported as a BEIR-style collection and used to benchmark BM25~\citep{robertson2009bm25}, dense retrieval (e.g., DPR~\citep{karpukhin2020dpr}, sentence-BERT~\citep{reimers2019sentencebert}), and interaction-based retrievers (e.g., ColBERT~\citep{khattab2020colbert}).
+
+\paragraph{RAG and parametric vs. non-parametric memory.}
+Retrieval-augmented QA and generation couples retrieval with a reader or generator to improve factuality and robustness~\citep{chen2017drqa,guu2020realm,lewis2020rag,izacard2021fid}.
+PopQA highlights that retrieval can outperform parametric memory on the long tail~\citep{mallen2023popqa}.
+EdgeQA generalizes this insight by searching for \emph{model-specific} unknownness signals, which may correlate with but are not identical to corpus rarity.
+
+\paragraph{Consistency, uncertainty, and self-knowledge.}
+Behavioral testing frameworks such as CheckList~\citep{ribeiro2020checklist} and contrast sets~\citep{gardner2020contrastsets} emphasize robustness under minimal, meaning-preserving perturbations.
+ParaRel~\citep{elazar2021pararel} reveals inconsistency of factual knowledge under paraphrased prompts.
+For reasoning tasks, paraphrastic variability can account for a significant portion of performance variance, and the PC metric quantifies paraphrastic consistency~\citep{srikanth2024paraphrastic}.
+Uncertainty calibration in black-box LLMs can be derived from sample consistency~\citep{lyu2024sampleconsistency}, and conformal methods can provide correctness coverage guarantees for uncertainty sets~\citep{wang2024conu}.
+SelfAware evaluates whether models know what they do not know via unanswerable questions~\citep{yin2023selfaware}.
+Risk--coverage analysis under abstention is closely related to selective classification~\citep{geifman2017selective}.
+EdgeQA leverages these ideas to detect unknown/brittle knowledge and to build stress tests that measure robustness and abstention.
+
+\paragraph{Grounding, attribution, and factuality.}
+Hallucination and factuality diagnostics for LLMs include TruthfulQA~\citep{lin2022truthfulqa} and black-box self-consistency checks such as SelfCheckGPT~\citep{manakul2023selfcheckgpt}.
+Attribution and factuality research emphasizes verifying support for generated content.
+RARR performs post-hoc research and revision to retrofit attribution~\citep{gao2023rarr}.
+FActScore decomposes generations into atomic facts and verifies support~\citep{min2023factscore}.
+EdgeQA adopts similar principles to filter QA for answerability and grounding, and to define atomic-fact coverage units when deterministic structure is unavailable.
+
+\paragraph{Knowledge coverage evaluation.}
+Recent work evaluates medical knowledge coverage of LLMs using KGs, reporting entity/relation/triple-level coverage~\citep{zhang2025medkgeval}.
+We generalize coverage from structured KGs to arbitrary unlabeled corpora, integrate coverage into dataset selection, and expose cost--coverage trade-offs for API-based construction.

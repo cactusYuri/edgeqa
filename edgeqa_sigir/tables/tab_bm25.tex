@@ -1,0 +1,36 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lllrrrr@{}}
+\toprule
+\textbf{Corpus} & \textbf{N} & \textbf{Method} & R@5 & R@10 & R@20 & nDCG@10 \\
+\midrule
+OLP & 1k & BM25 & 0.468 & 0.541 & 0.609 & 0.486 \\
+OLP & 1k & Dense & 0.462 & 0.547 & 0.644 & 0.472 \\
+OLP & 1k & Hybrid & 0.523 & 0.608 & 0.679 & 0.540 \\
+OLP & 2k & BM25 & 0.491 & 0.561 & 0.622 & 0.484 \\
+OLP & 2k & Dense & 0.497 & 0.578 & 0.661 & 0.481 \\
+OLP & 2k & Hybrid & 0.555 & 0.628 & 0.691 & 0.544 \\
+OLP & 5k & BM25 & 0.507 & 0.576 & 0.637 & 0.476 \\
+OLP & 5k & Dense & 0.530 & 0.615 & 0.688 & 0.489 \\
+OLP & 5k & Hybrid & 0.580 & 0.653 & 0.713 & 0.545 \\
+OLP & 10k & BM25 & 0.550 & 0.624 & 0.684 & 0.507 \\
+OLP & 10k & Dense & 0.570 & 0.654 & 0.725 & 0.513 \\
+OLP & 10k & Hybrid & 0.627 & 0.696 & 0.752 & 0.577 \\
+OSP & 1k & BM25 & 0.441 & 0.495 & 0.536 & 0.432 \\
+OSP & 1k & Dense & 0.480 & 0.554 & 0.628 & 0.467 \\
+OSP & 1k & Hybrid & 0.475 & 0.540 & 0.580 & 0.468 \\
+OSP & 2k & BM25 & 0.433 & 0.495 & 0.535 & 0.433 \\
+OSP & 2k & Dense & 0.481 & 0.565 & 0.644 & 0.470 \\
+OSP & 2k & Hybrid & 0.479 & 0.543 & 0.580 & 0.473 \\
+OSP & 5k & BM25 & 0.517 & 0.565 & 0.599 & 0.495 \\
+OSP & 5k & Dense & 0.574 & 0.640 & 0.699 & 0.537 \\
+OSP & 5k & Hybrid & 0.566 & 0.611 & 0.640 & 0.540 \\
+OSP & 10k & BM25 & 0.535 & 0.586 & 0.623 & 0.497 \\
+OSP & 10k & Dense & 0.611 & 0.672 & 0.728 & 0.555 \\
+OSP & 10k & Hybrid & 0.593 & 0.642 & 0.674 & 0.551 \\
+\bottomrule
+\end{tabular}
+\caption{Retrieval results on the BEIR-style exports of EdgeQA (questions as queries; evidence passages as relevant). Dense uses \texttt{sentence-transformers/all-MiniLM-L6-v2}.}
+\label{tab:bm25}
+\end{table}

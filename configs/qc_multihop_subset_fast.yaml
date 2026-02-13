@@ -1,0 +1,45 @@
+run_name: qc_multihop_subset_fast
+
+artifacts_dir: ../artifacts
+cache_dir: ../cache
+
+llm:
+  # Empirically, the gateway returns many HTTP 405/429 at 600 in-flight requests.
+  # ~200 in-flight is much more stable while still fast.
+  concurrency: 200
+  force_refresh: true
+  model_chat: deepseek-chat
+  model_reasoner: deepseek-chat
+
+edgeqa:
+  candidate_passages: 200
+  qa_per_passage: 2
+  multi_hop_rate: 0.25
+  enforce_multi_hop: true
+  edge_tau: 0.60
+  weights: {w1: 1.0, w2: 1.0, w3: 1.0}
+  final_N: 200
+  passage_workers: 64
+
+edgecoverbench:
+  unit_workers: 64
+
+decoding:
+  gen:           {temperature: 0.7, max_tokens: 8000}
+  closed_book:   {temperature: 0.0, max_tokens: 8000}
+  sample:        {temperature: 0.8, max_tokens: 8000, m: 4}
+  paraphrase:    {temperature: 0.8, max_tokens: 8000, k: 2}
+  verify_fast:   {temperature: 0.0, max_tokens: 8000}
+  verify_strict: {temperature: 0.0, max_tokens: 8000}
+
+filtering:
+  max_question_evidence_jaccard: 0.50
+  strict_verify: false
+  strict_verify_rate: 0.0
+
+equivalence:
+  use_llm: true
+
+selection:
+  lambdas: {doc: 1.0, unit: 1.0, reason: 0.5, redundancy: 0.2}
+  unknownness_min_frac: 0.5

@@ -1,0 +1,42 @@
+\section{Resource Availability}
+\label{sec:availability}
+
+We release (i) the EdgeQA construction pipeline (code + prompts), (ii) two corpus instantiations (Open Logic Project and OpenStax University Physics), (iii) the EdgeCoverBench construction + evaluation toolkit, and (iv) BEIR-style retrieval test collections exported from each instantiation.
+The release is designed so that a third party can (a) re-download upstream corpora, (b) rebuild passages and knowledge units, and (c) reproduce every reported figure/table from cached intermediate artifacts, \emph{without} having to re-run expensive API calls.
+
+\paragraph{Repository (code, prompts, and configs).}
+\textbf{Access link (to be filled for submission):} \texttt{\{REPOSITORY\_URL\}}.
+The repository contains:
+\begin{itemize}
+  \item an end-to-end pipeline with cached artifacts at each stage (ingest, segment, mine, generate, score/filter, units, select, evaluate),
+  \item all prompt templates (generation, paraphrasing, verification, equivalence),
+  \item experiment configuration files for every table/figure (including the defaults in Table~\ref{tab:api_config} and Table~\ref{tab:default_config}),
+  \item a minimal ``toy'' run that completes on commodity hardware using cached model outputs.
+\end{itemize}
+
+\paragraph{Released artifacts and formats.}
+For each corpus (Sec.~\ref{sec:corpora}), we release the following machine-readable artifacts:
+\begin{itemize}
+  \item \textbf{Passages (corpus):} \texttt{corpus.jsonl} / \texttt{passages.jsonl} with stable \texttt{doc\_id}, section path, offsets, hashes, and normalized text.
+  \item \textbf{Knowledge units:} \texttt{units.jsonl} with unit IDs, unit type (structured vs. atomic-fact), and provenance to passages.
+  \item \textbf{EdgeQA datasets:} \texttt{edgeqa\_*.jsonl} with \texttt{question}, \texttt{answer}, \texttt{evidence} (doc/passage IDs + offsets), \texttt{reason\_type}, \texttt{unit\_ids}, and scoring/filtering metadata.
+  \item \textbf{EdgeCoverBench:} \texttt{edgecoverbench\_*.jsonl} with canonical/paraphrase/near-miss/unanswerable splits and generation provenance.
+  \item \textbf{BEIR export:} \texttt{queries.jsonl}, \texttt{corpus.jsonl}, and \texttt{qrels} derived from evidence mappings (Sec.~\ref{sec:ir_export}).
+  \item \textbf{Evaluation outputs:} coverage curves, risk--coverage curves, and per-item predictions in machine-readable form.
+\end{itemize}
+
+\paragraph{API configuration, caching, and cost logs.}
+All LLM-dependent steps in this release are API-only.
+We provide adapters for the DeepSeek API and record, for each request: model identifier, decoding parameters, prompt template version, request/response hashes, and token usage.
+To support reproducibility and reduce reviewer burden, we ship cached responses for the reported experiments and expose scripts to recompute them when an API key is available.
+
+\paragraph{Corpus access and evidence policy.}
+Because OLP and OSP are licensed under CC BY 4.0, we redistribute the raw evidence text with attribution.
+For extensibility to non-redistributable corpora, the pipeline also supports an ``evidence pointer'' mode that stores only document identifiers, offsets, and hashes plus scripts to rehydrate evidence from the upstream source.
+
+\paragraph{Licensing.}
+We release code under a permissive open-source license (Apache-2.0) and preserve upstream licensing and attribution requirements for corpora.
+Derived QA artifacts include explicit attribution to the source corpora and per-item provenance fields.
+
+\paragraph{Long-term preservation.}
+In addition to the live repository, we archive the submission snapshot (code, prompts, configs, and data metadata) with a DOI and provide checksums for all released files.

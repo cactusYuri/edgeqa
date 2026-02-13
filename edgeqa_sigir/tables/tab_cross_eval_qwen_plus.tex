@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Corpus} & \textbf{N} & CB Acc. & Ctx Acc. & Unk. purity \\
+\midrule
+OLP & 1k  & 0.260 & 0.649 & 0.438 \\
+OLP & 2k  & 0.238 & 0.645 & 0.450 \\
+OLP & 5k  & 0.206 & 0.662 & 0.491 \\
+OLP & 10k & 0.206 & 0.688 & 0.514 \\
+OSP & 1k  & 0.265 & 0.681 & 0.463 \\
+OSP & 2k  & 0.284 & 0.680 & 0.441 \\
+OSP & 5k  & 0.242 & 0.687 & 0.480 \\
+OSP & 10k & 0.224 & 0.685 & 0.492 \\
+\bottomrule
+\end{tabular}
+\caption{Cross-model evaluation of the released EdgeQA exports using \texttt{qwen-plus} in closed-book (CB) and evidence-conditioned (Ctx) settings. Unk. purity is the fraction where CB is incorrect but Ctx is correct.}
+\label{tab:cross_eval_qwen}
+\end{table}
+

@@ -1,0 +1,40 @@
+run_name: qc_pilot
+
+artifacts_dir: ../artifacts
+cache_dir: ../cache
+
+llm:
+  concurrency: 64
+  force_refresh: true
+  model_chat: deepseek-chat
+  model_reasoner: deepseek-reasoner
+
+edgeqa:
+  candidate_passages: 10
+  qa_per_passage: 2
+  edge_tau: 0.0
+  final_N: 20
+  passage_workers: 16
+
+edgecoverbench:
+  unit_workers: 16
+
+decoding:
+  gen:         {temperature: 0.7, max_tokens: 8000}
+  closed_book: {temperature: 0.0, max_tokens: 8000}
+  sample:      {temperature: 0.8, max_tokens: 8000, m: 2}
+  paraphrase:  {temperature: 0.8, max_tokens: 8000, k: 2}
+  verify_fast: {temperature: 0.0, max_tokens: 256}
+  verify_strict: {temperature: 0.0, max_tokens: 512}
+
+filtering:
+  max_question_evidence_jaccard: 0.65
+  strict_verify: true
+  strict_verify_rate: 1.0
+
+equivalence:
+  use_llm: true
+
+selection:
+  lambdas: {doc: 1.0, unit: 1.0, reason: 0.5, redundancy: 0.2}
+  unknownness_min_frac: 0.0

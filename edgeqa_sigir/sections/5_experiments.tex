@@ -1,0 +1,181 @@
+\section{Experiments and Analyses}
+\label{sec:experiments}
+
+The primary goal of this paper is to release (i) a model-aware QA construction pipeline, (ii) two redistributable instantiations on CC-BY corpora, and (iii) a coverage-oriented evaluation suite that is directly reusable for IR and RAG research.
+Accordingly, our experimental design emphasizes \emph{API-only feasibility}, \emph{model-specificity diagnostics}, and \emph{cost/coverage reporting}.
+
+\subsection{Corpora and preprocessing}
+\label{sec:corpora}
+We instantiate EdgeQA and EdgeCoverBench on two open corpora with clear redistribution terms (CC BY 4.0) and strong structure for deterministic unit extraction:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Open Logic Project (OLP):} a LaTeX-based logic textbook.
+  \item \textbf{OpenStax University Physics (OSP):} an open textbook series with stable chapter/section structure.
+\end{enumerate}
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}p{1.4cm}p{2.7cm}p{1.3cm}p{2.8cm}p{1.2cm}@{}}
+\toprule
+\textbf{Corpus} & \textbf{Source} & \textbf{License} & \textbf{Primary structured units} & \textbf{Evidence} \\
+\midrule
+OLP & Open Logic Project (LaTeX) & CC BY 4.0 & Def/Theorem/Lemma/Proof/Example & raw text \\
+OSP & OpenStax Univ. Physics (HTML) & CC BY 4.0 & Definitions, laws, equations, examples & raw text \\
+\bottomrule
+\end{tabular}
+\caption{Core corpora in this release. Because both are CC BY 4.0, we redistribute raw evidence text with attribution (Sec.~\ref{sec:availability}).}
+\label{tab:corpora}
+\end{table}
+
+\paragraph{Segmentation and stable identifiers.}
+For each corpus, we segment into passages (typically paragraphs) with stable identifiers.
+For OLP, we respect LaTeX environments and section paths.
+For OSP, we parse HTML into sections and paragraphs and remove navigation boilerplate.
+To bound API cost, we cap each evidence span to at most $L_e$ tokens (default $L_e{=}512$) by selecting the minimal supporting sentences, and we split very long paragraphs into sub-passages.
+We deduplicate passages using exact hashing and a near-duplicate filter.
+
+\paragraph{Construction vs. evaluation partitions.}
+To reduce leakage in coverage diagnostics, we split documents into \emph{construction} and \emph{evaluation} partitions by chapter/section (default 80/20).
+EdgeQA uses the construction partition for dataset synthesis, while EdgeCoverBench and coverage reporting can be computed on either the full corpus or the evaluation partition depending on the intended use.
+
+\subsection{Knowledge unit extraction (deterministic-first)}
+We report both \emph{structured-unit} coverage (preferred when available) and \emph{fallback} unit coverage (atomic facts).
+
+\paragraph{Structured units (low noise).}
+\textbf{OLP units} are parsed directly from LaTeX environments, with unit IDs as \texttt{(doc\_id, env\_type, env\_counter)}.
+\textbf{OSP units} are extracted from (i) definition/key-term blocks, (ii) named laws and principles, (iii) displayed equations with surrounding explanation, and (iv) worked examples.
+
+\paragraph{Fallback units (API-based atomic facts).}
+When structure is absent or when we want finer-grained accounting, we decompose passages into atomic facts using the same API model stack as the rest of the pipeline (Sec.~\ref{sec:api_config}).
+To quantify extractor noise, we recommend running two prompt variants and reporting UnitCov uncertainty bands (mean\,$\pm$\,std).
+
+\subsection{API-only model stack and token budgets}
+\label{sec:api_config}
+EdgeQA assumes black-box access to a target model $M$ (no token logprobs required).
+In this release, we use \textsc{DeepSeek-V3.2} via API in a single mode:
+\textbf{\texttt{deepseek-chat}} (non-thinking) for \emph{all} high-volume steps.
+We optionally support a stricter ``thinking'' verifier model for a small audit slice, but we disable it in the released instantiations.
+We cache all API inputs/outputs and record model name, access date, decoding parameters, prompt template version, and a content hash for reproducibility.
+
+\paragraph{Token budgets.}
+We target a non-thinking budget of \textbf{500M tokens} for \texttt{deepseek-chat} (expandable).
+If using a thinking verifier, we recommend capping it (e.g., \textbf{20M tokens}) and reserving it for borderline near-miss validation and a small audit slice.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}p{2.1cm}p{2.0cm}p{0.9cm}p{0.9cm}p{1.4cm}p{1.3cm}@{}}
+\toprule
+\textbf{Step} & \textbf{Model} & $T$ & $p$ & \textbf{Max out} & \textbf{Calls} \\
+\midrule
+QA generation & \texttt{deepseek-chat} & 0.7 & 0.9 & 256 & 1 / passage \\
+Closed-book answer & \texttt{deepseek-chat} & 0.0 & 1.0 & 64 & 1 / QA \\
+Sampling inconsistency & \texttt{deepseek-chat} & 0.8 & 0.95 & 64 & $m{=}4$ / QA$^\dagger$ \\
+Paraphrase gen & \texttt{deepseek-chat} & 0.8 & 0.95 & 192 & 1 / QA$^\dagger$ \\
+Paraphrase answers & \texttt{deepseek-chat} & 0.0 & 1.0 & 64 & $k{=}2$ / QA$^\dagger$ \\
+Fast verification & \texttt{deepseek-chat} & 0.0 & 1.0 & 64 & 1 / QA$^\ddagger$ \\
+Strict verification (optional) & \texttt{deepseek-chat} & 0.0 & 1.0 & 128 & \small subset \\
+\bottomrule
+\end{tabular}
+\caption{Default API configuration. $T$=temperature; $p$=top-$p$. $^\dagger$Applied only to candidates that fail closed-book and pass basic quality gates. $^\ddagger$Applied only to candidates that pass the edge score threshold and are considered for the final pool.}
+\label{tab:api_config}
+\end{table}
+
+\subsection{Default EdgeQA configuration for this release}
+Table~\ref{tab:default_config} lists a concrete, token-budget-aware configuration that fits within the stated DeepSeek budgets.
+We report results as coverage curves over multiple final budgets $N$.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}p{3.6cm}p{4.8cm}@{}}
+\toprule
+\textbf{Component} & \textbf{Default setting} \\
+\midrule
+Candidate passages $|\mathcal{P}_0|$ & 20k per corpus (salience + topic-stratified sampling) \\
+QA per passage & 2 single-hop + 0--1 multi-hop (rate 0.25) \\
+Evidence span cap & $L_e{=}512$ tokens (minimal supporting sentences) \\
+Sampling inconsistency & $m{=}4$ stochastic samples for CB-fail candidates \\
+Paraphrases & $k{=}2$ meaning-preserving paraphrases for CB-fail candidates \\
+Edge score threshold & $\tau{=}0.60$ on $U(x)$ (Eq.~\ref{eq:edge_score}) \\
+Fast verifier threshold & entailment score $\ge 0.8$ (LLM judge) \\
+Selection objective weights & $(\lambda_d,\lambda_u,\lambda_r,\lambda_{dup})=(1,1,0.5,0.2)$ \\
+Unknownness purity constraint & $\rho{=}0.50$ (optional constrained selection) \\
+Final QA budgets & $N\in\{1k,2k,5k,10k\}$ per corpus \\
+\bottomrule
+\end{tabular}
+\caption{Concrete configuration used for the released instantiations. All thresholds and budgets are exposed in configuration files and are reused across corpora unless stated otherwise.}
+\label{tab:default_config}
+\end{table}
+
+\subsection{Cross-model evaluation (model-aware diagnostics)}
+To test whether ``edge'' sets are genuinely model-aware rather than universally hard, we evaluate a \emph{different} API model on the released \texttt{deepseek-chat}-targeted EdgeQA exports.
+We use \texttt{qwen-plus} (non-thinking) via batch inference and report closed-book accuracy, evidence-conditioned accuracy, and unknownness purity (Table~\ref{tab:cross_eval_qwen}).
+At $N{=}10k$, \texttt{qwen-plus} reaches $\approx$0.69 context accuracy on both corpora but has unknownness purity $\approx$0.49--0.51, indicating that the released sets are \emph{not} universally ``unknown'' across models.
+A full 2\,$\times$\,2 matrix (constructing separate EdgeQA sets for each target model) is left for future work due to additional API cost.
+
+\input{tables/tab_cross_eval_qwen_plus}
+
+\paragraph{Breakdown by hop.}
+Multi-hop items are systematically less ``unknown'' to \texttt{qwen-plus}.
+At $N{=}10k$, unknownness purity drops from $\approx$0.51 to $\approx$0.44 on OSP and from $\approx$0.54 to $\approx$0.44 on OLP when moving from single-hop to multi-hop, while closed-book accuracy increases.
+This suggests that some multi-hop questions are easier to answer from parametric knowledge (less useful as ``unknown'' tests), and may require stronger evidence-conditioning or stricter unknownness constraints to remain model-specific.
+
+\paragraph{Cheap retargeting and pool-only baselines.}
+We additionally study (i) cheap retargeting by re-scoring unknownness on the same candidate pool for a different model and (ii) cost-free pool-only selection baselines; we include these in Appendix~\ref{app:extra_results} due to space.
+
+\subsection{IR export and retrieval baselines}
+\label{sec:ir_export}
+Each grounded QA instance defines a query $x$ and a set of relevant evidence passages $E$.
+We therefore export each instantiation as a BEIR-style test collection~\citep{thakur2021beir}:
+\texttt{queries.jsonl} (questions), \texttt{corpus.jsonl} (passages), and \texttt{qrels} (evidence passages marked relevant).
+For multi-hop items, we mark the union of evidence passages as relevant.
+
+We report standard retrieval metrics, focusing on Recall@$k$ (critical for RAG) and ranking metrics such as nDCG@10.
+We include representative sparse/dense baselines:
+BM25, a lightweight dense retriever (sentence-transformer MiniLM), and a simple hybrid BM25+dense reranker.
+
+\subsection{Metrics and analyses}
+For each corpus and method, we report:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Unknownness purity:} fraction where $M$ fails closed-book but succeeds with evidence.
+  \item \textbf{Brittleness:} sampling entropy and pairwise paraphrase disagreement.
+  \item \textbf{Coverage curves:} DocCov/UnitCov/ReasonCov as a function of QA budget $N$, plus marginal gain curves.
+  \item \textbf{Cost-aware curves:} DocCov/UnitCov as a function of API token budget (Sec.~\ref{sec:api_config}).
+  \item \textbf{IR metrics:} Recall@$\{5,10,20\}$, nDCG@10, and MRR@10 for the exported retrieval collections (Sec.~\ref{sec:ir_export}).
+  \item \textbf{EdgeCoverBench robustness:} paraphrase accuracy, near-miss false positive rate, and risk--coverage curves under abstention (Sec.~\ref{sec:edgecoverbench}).
+  \item \textbf{Quality gates:} verification pass rate, ambiguity rejection rate, and near-duplicate rate.
+\end{enumerate}
+
+\paragraph{Human audit.}
+To mitigate LLM-as-a-judge bias (cf.\ LLM-based judging protocols~\citep{zheng2023mtbench}), we include a targeted manual audit for each corpus (default 100 items for EdgeQA and 100 for EdgeCoverBench):
+answer correctness, evidence support, ambiguity, paraphrase meaning preservation, and (for EdgeCoverBench) the validity of near-miss/unanswerable labels.
+Across both corpora, the audit indicates high data quality: for EdgeQA, answer correctness is 1.00 on both corpora with evidence support 1.00 (OSP) and 0.98 (OLP) and $\le$1\% ambiguity; for EdgeCoverBench, paraphrase meaning preservation and near-miss label validity are 1.00 (Table~\ref{tab:human_audit_edgeqa}, Table~\ref{tab:human_audit_ecb}).
+\input{tables/tab_human_audit_edgeqa}
+\input{tables/tab_human_audit_edgecoverbench}
+
+\subsection{Released instantiation results (DeepSeek-V3.2 chat)}
+\label{sec:instantiation_results}
+We report coverage curves and budgeted exports for the released \texttt{deepseek-chat} instantiations on OLP and OSP.
+Table~\ref{tab:coverage_main} summarizes key coverage/composition numbers across budgets, and Figure~\ref{fig:coverage_curves} visualizes DocCov/UnitCov.
+Appendix~\ref{app:extra_results} reports additional analyses (brittleness distributions, token breakdowns, pool-only baselines, retrieval baselines, and risk--coverage curves).
+
+\input{tables/tab_coverage_main}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/coverage_curves.pdf}
+\caption{Coverage curves for the released instantiations as a function of QA budget $N$. DocCov measures the fraction of corpus passages exercised by at least one evidence set; UnitCov measures the fraction of extracted structured units covered.}
+\label{fig:coverage_curves}
+\end{figure}
+\input{tables/tab_edgecoverbench_comp}
+
+\paragraph{EdgeCoverBench baseline (\texttt{qwen-plus}).}
+We evaluate \texttt{qwen-plus} on EdgeCoverBench in an evidence-conditioned setting with optional abstention.
+Table~\ref{tab:ecb_qwen} reports paraphrase robustness and near-miss false positive rates, demonstrating that near-miss counterfactuals induce substantial false confidence under a standard API baseline.
+Appendix~\ref{app:extra_results} (Figure~\ref{fig:ecb_risk_coverage_qwen}) reports risk--coverage curves under abstention by sweeping a confidence threshold.
+\input{tables/tab_edgecoverbench_qwen_plus}
+
+\subsection{Reproducibility and configuration files}
+The released repository includes an end-to-end pipeline (ingest $\rightarrow$ segment $\rightarrow$ mine $\rightarrow$ generate $\rightarrow$ score/filter $\rightarrow$ units $\rightarrow$ select $\rightarrow$ evaluate) and configuration files for every table/figure.
+Because API calls are expensive and non-deterministic across time, we also release cached API responses for the reported experiments and provide scripts to re-run calls when an API key is available.

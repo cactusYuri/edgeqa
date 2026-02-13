@@ -1,0 +1,68 @@
+% =========================
+% EdgeCoverBench (revised for API-only construction)
+% =========================
+
+\section{EdgeCoverBench: Coverage-Aware Stress-Test Benchmark}
+\label{sec:edgecoverbench}
+
+\paragraph{Motivation.}
+Standard QA benchmarks measure accuracy on a fixed question set, but they do not explicitly quantify (i) \emph{how much} of a domain corpus is exercised by the benchmark or (ii) the \emph{cost} required to reach a target coverage level when the benchmark is constructed via LLM APIs.
+We introduce \textbf{EdgeCoverBench}, a corpus-based benchmark that operationalizes coverage via an explicit inventory of \textbf{knowledge units} and evaluates models with evidence-grounded questions, robustness tests, and abstention.
+
+\paragraph{Release scope.}
+To keep the resource self-contained and redistributable, this release instantiates EdgeCoverBench on the same two CC-BY corpora as EdgeQA (Sec.~\ref{sec:experiments}): the \textbf{Open Logic Project} (formal logic; LaTeX structure) and \textbf{OpenStax University Physics} (quantitative physics; textbook structure).
+The benchmark design is general and can be applied to other structured domains, but we focus on these two for reproducible unit extraction and unambiguous evidence.
+
+\subsection{Benchmark components}
+EdgeCoverBench consists of:
+\begin{enumerate}[leftmargin=*]
+  \item a corpus snapshot $\mathcal{C}$ with stable passage identifiers and offsets,
+  \item a unit inventory $\mathcal{U}$ extracted deterministically from document structure when available,
+  \item unit-anchored QA instances with minimal evidence spans,
+  \item \textbf{paraphrases} for robustness and paraphrase-consistency evaluation,
+  \item \textbf{near-miss counterfactuals} and \textbf{unanswerable} items to measure false confidence and selective prediction.
+\end{enumerate}
+
+\subsection{Unit extraction and difficulty stratification}
+\paragraph{Deterministic units.}
+We prioritize deterministic extraction over LLM-dependent OpenIE.
+For OLP, units correspond to LaTeX environments (\texttt{definition/theorem/lemma/proof/example}).
+For OSP, units correspond to definition blocks, named laws/principles, displayed equations with surrounding explanation, and worked examples.
+
+\paragraph{Prerequisite depth (optional).}
+Some domains exhibit heavy prerequisites.
+We build a directed prerequisite graph over structured units by linking explicit references (e.g., ``see Definition~2.1'') and term-definition mentions.
+We then report depth-aware results by grouping QA instances by the maximum depth of their referenced units.
+
+\subsection{Unit-anchored questions and stress tests}
+For each unit $u\in\mathcal{U}$ we generate 1--3 \textbf{canonical} questions answerable from the unit span, plus $k$ meaning-preserving paraphrases.
+We also generate \textbf{near-miss} items by minimally perturbing a constraint (e.g., flip a quantifier, tweak a numeric threshold, remove a condition) such that the modified question becomes \emph{unanswerable} from the evidence or contradicted by it.
+
+\subsection{Verification stack (API-only)}
+EdgeCoverBench uses a layered verification stack that avoids local LLM inference:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Rule/structure checks:} enforce answer format (e.g., numeric units), forbid degenerate questions, and validate that the evidence span contains required entities/symbols.
+  \item \textbf{Fast entailment check (non-thinking API):} use \textsc{DeepSeek-V3.2} non-thinking mode (\texttt{deepseek-chat}) to judge whether the proposed answer is supported by the evidence span.
+  \item \textbf{Strict check (limited thinking budget):} for borderline cases (e.g., near-miss generation), use \textsc{DeepSeek-V3.2} thinking mode (\texttt{deepseek-reasoner}) to search for counterexamples or missing assumptions.
+\end{enumerate}
+We additionally include a small human audit slice (Sec.~\ref{sec:experiments}) to estimate label accuracy and meaning drift.
+
+\subsection{Metrics}
+\paragraph{Dataset-side structured-unit coverage.}
+Given a QA set $\mathcal{Q}$ and structured unit inventory $\mathcal{U}$, we define
+\[
+\textsc{UnitCov}_{SU}(\mathcal{Q}) = \frac{\left|\left\{u\in \mathcal{U}:\exists q\in \mathcal{Q}\ \text{s.t.}\ u\in \textsc{Units}(q)\right\}\right|}{|\mathcal{U}|}.
+\]
+We optionally compute depth-aware variants using the prerequisite graph.
+
+\paragraph{Model-side robustness and selective prediction (API-only).}
+We report (i) accuracy on canonical questions,
+(ii) evidence fidelity (supported-by-evidence),
+(iii) paraphrase consistency,
+(iv) near-miss false positive rate,
+and (v) risk--coverage curves under abstention.
+
+\paragraph{Coverage--budget curve.}
+To evaluate dataset construction methods, we plot $\textsc{DocCov}$/$\textsc{UnitCov}$ as a function of construction budget (API tokens/cost), enabling cost-controlled comparisons.
+
+% End of section.

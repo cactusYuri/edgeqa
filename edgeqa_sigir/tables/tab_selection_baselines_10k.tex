@@ -1,0 +1,24 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}llrr@{}}
+\toprule
+\textbf{Corpus} & \textbf{Baseline} & \textbf{DocCov} & \textbf{UnitCov} \\
+\midrule
+OLP & EdgeQA & 0.775 & 0.690 \\
+OLP & Coverage-first & 0.775 & 0.690 \\
+OLP & Unit-first & 0.773 & 0.690 \\
+OLP & Long-tail & 0.768 & 0.680 \\
+OLP & Paraphrase-only & 0.770 & 0.684 \\
+OLP & Random & 0.772 & 0.688 \\
+OSP & EdgeQA & 0.676 & 0.456 \\
+OSP & Coverage-first & 0.676 & 0.441 \\
+OSP & Unit-first & 0.506 & 0.456 \\
+OSP & Long-tail & 0.416 & 0.176 \\
+OSP & Paraphrase-only & 0.444 & 0.253 \\
+OSP & Random & 0.488 & 0.354 \\
+\bottomrule
+\end{tabular}
+\caption{Selection baseline coverage at $N=10k$ using the same candidate pool (no additional API calls).}
+\label{tab:selection_baselines}
+\end{table}

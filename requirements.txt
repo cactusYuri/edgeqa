@@ -1,0 +1,5 @@
+aiohttp
+PyYAML
+requests
+beautifulsoup4
+rank-bm25

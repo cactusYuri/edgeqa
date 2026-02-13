@@ -1,0 +1,12 @@
+\section{Limitations}
+\label{sec:limitations}
+
+EdgeQA relies on automatic verifiers and unit extractors, which may introduce bias.
+We mitigate this by reporting multiple unit definitions (KG-style, atomic facts, and structured units when available) and auditing a human evaluation slice.
+In addition, paraphrase generation can introduce subtle meaning drift; we recommend paraphrase validation heuristics and audits.
+Finally, robust multi-hop QA construction remains challenging; naive entity overlap may produce spurious ``multi-hop'' questions.
+
+A broader limitation in the model-aware setting is potential \textbf{pretraining overlap} between public corpora and the target model, which can blur the interpretation of ``unknownness'' as a proxy for missing knowledge.
+Where feasible, we recommend time-based splits or domain-specific corpora with clearer provenance.
+
+EdgeQA also depends on black-box API behavior (model versions and safety layers can change over time), so full reproducibility requires recording model identifiers, dates, and decoding parameters.

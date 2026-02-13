@@ -1,0 +1,48 @@
+run_name: dev
+
+artifacts_dir: ../artifacts
+cache_dir: ../cache
+
+llm:
+  concurrency: 16
+  model_chat: deepseek-chat
+  model_reasoner: deepseek-reasoner
+
+edgeqa:
+  candidate_passages: 200
+  qa_per_passage: 2
+  multi_hop_rate: 0.25
+  edge_tau: 0.60
+  weights: {w1: 1.0, w2: 1.0, w3: 1.0}
+  final_N: 200
+
+decoding:
+  gen:         {temperature: 0.7, max_tokens: 256}
+  closed_book: {temperature: 0.0, max_tokens: 64}
+  sample:      {temperature: 0.8, max_tokens: 64, m: 4}
+  paraphrase:  {temperature: 0.8, max_tokens: 192, k: 2}
+  verify_fast: {temperature: 0.0, max_tokens: 64}
+  verify_strict: {temperature: 0.0, max_tokens: 128}
+
+filtering:
+  max_question_evidence_jaccard: 0.65
+  min_verifier_entailment: 0.80
+
+equivalence:
+  use_llm: true
+
+selection:
+  lambdas: {doc: 1.0, unit: 1.0, reason: 0.5, redundancy: 0.2}
+  unknownness_min_frac: 0.0
+
+corpora:
+  olp:
+    source:
+      type: git
+      url: https://github.com/OpenLogicProject/OpenLogic.git
+      revision: master
+  osp:
+    source:
+      type: git
+      url: https://github.com/openstax/university-physics.git
+      revision: main

@@ -1,0 +1,60 @@
+\section{Introduction}
+\label{sec:intro}
+
+Pretrained language models can store and recall relational knowledge present in their training data, enabling factual question answering without explicit retrieval~\citep{petroni2019lama}.
+However, strong average performance masks systematic failures on domain-specific knowledge and long-tail facts, where relying on parametric memory alone is insufficient~\citep{mallen2023popqa}.
+In practice, teams adapt LLMs to new domains either by collecting QA/instruction data for supervised fine-tuning (SFT) or by introducing retrieval-augmented generation (RAG).
+When labeled data are scarce but a domain corpus is available, synthetic QA generation from unlabeled text becomes an attractive alternative.
+
+Large-scale synthetic QA resources demonstrate that automated QA construction is feasible at scale.
+PAQ~\citep{lewis2021paq} creates 65M ``probably asked'' QA pairs from Wikipedia to increase coverage and improve QA systems.
+Benchmarks such as KILT~\citep{petroni2021kilt} unify knowledge-intensive tasks under a shared evidence source and evaluate provenance.
+Yet, these frameworks do not directly answer a crucial question for \emph{model-targeted} domain adaptation and evaluation:
+\emph{given a target model $M$ and a domain corpus $\mathcal{C}$, what subset of corpus knowledge is \textbf{unknown} or \textbf{brittle} for $M$, and how can we systematically build a QA resource that targets such edge knowledge while offering measurable \textbf{coverage} over $\mathcal{C}$ under a clear token/cost budget?}
+
+Two observations motivate a model-aware construction approach.
+First, LLMs can be inconsistent under meaning-preserving paraphrases, even for factual queries~\citep{elazar2021pararel}, and paraphrastic variability can substantially affect reasoning performance~\citep{srikanth2024paraphrastic}.
+Second, black-box LLM APIs are increasingly used in RAG systems, but their behavior can vary with decoding, safety layers, and interface updates.
+Together, these suggest that ``unknownness'' should be defined behaviorally (failure/instability), and that resources should report \textbf{coverage--budget curves} rather than only downstream fine-tuning gains.
+
+\paragraph{IR interface: turning grounded QA into retrieval test collections.}
+From an information retrieval perspective, each grounded QA instance naturally defines a \emph{query} (the question) and \emph{relevant documents} (the evidence passages).
+Therefore, an EdgeQA dataset can be exported as a BEIR-style test collection (\texttt{queries.jsonl}, \texttt{corpus.jsonl}, \texttt{qrels})~\citep{thakur2021beir} and used to benchmark sparse, dense, and hybrid retrievers, as well as end-to-end RAG pipelines.
+We treat this ``IR-ification'' as a first-class part of the resource release.
+
+\paragraph{Resource overview.}
+This paper describes a coverage-aware resource family consisting of:
+(1) \textbf{EdgeQA}, a model-aware pipeline that converts unlabeled corpora into grounded QA pairs targeting unknown and brittle knowledge of a specified target model, and
+(2) \textbf{EdgeCoverBench}, a corpus-based stress-test benchmark that operationalizes coverage via knowledge units and evaluates robustness under paraphrases, near-miss counterfactuals, and unanswerable items.
+We additionally provide a \textbf{knowledge coverage evaluation protocol} that measures document coverage, knowledge-unit coverage, and reasoning-type coverage.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}p{2.2cm}p{6.2cm}p{1.4cm}@{}}
+\toprule
+\textbf{Artifact} & \textbf{What it provides} & \textbf{Sec.} \\\midrule
+EdgeQA builder & End-to-end pipeline (ingest$\rightarrow$mine$\rightarrow$generate$\rightarrow$score/filter$\rightarrow$unit extract$\rightarrow$budgeted selection) for producing grounded QA resources from an unlabeled corpus for a target model $M$ & \S\ref{sec:edgeqa} \\
+Coverage evaluation toolkit & Metrics and reporting protocol for DocCov / UnitCov / ReasonCov, unknownness purity, brittleness, and \emph{cost-aware} coverage curves & \S\ref{sec:edgeqa} \\
+IR test collection export & BEIR-style export (queries/corpus/qrels) plus retriever baselines for each EdgeQA instantiation & \S\ref{sec:experiments} \\
+EdgeCoverBench & Coverage-aware stress-test benchmark with canonical, paraphrase, near-miss, and unanswerable items; supports abstention and risk--coverage evaluation & \S\ref{sec:edgecoverbench} \\
+\bottomrule
+\end{tabular}
+\caption{Summary of the resources described in this paper. Release links and licenses are specified in Sec.~\ref{sec:availability}.}
+\label{tab:resource_summary}
+\end{table}
+
+\paragraph{Our goal.}
+Given an unlabeled corpus $\mathcal{C}$ and a target model $M$, we construct a grounded QA set $\mathcal{Q}$ such that:
+(i) $\mathcal{Q}$ targets \emph{unknown or brittle} knowledge for $M$ in closed-book mode,
+(ii) each QA is \emph{answerable and grounded} in evidence from $\mathcal{C}$,
+(iii) $\mathcal{Q}$ maximizes \emph{knowledge coverage} of $\mathcal{C}$ under a budget, and
+(iv) $\mathcal{Q}$ covers diverse reasoning operators.
+
+\paragraph{Contributions.}
+\begin{enumerate}[leftmargin=*]
+  \item We present \textbf{EdgeQA}, a pipeline for \emph{model-aware} synthetic QA generation that prioritizes unknown/brittle knowledge and selects a budgeted subset to maximize corpus coverage.
+  \item We introduce a \textbf{coverage evaluation protocol} for QA sets, measuring document coverage, knowledge-unit coverage, and reasoning-type coverage alongside unknownness purity and brittleness.
+  \item We describe \textbf{EdgeCoverBench}, a benchmark for robustness and abstention under unit-anchored coverage accounting.
+  \item We export each instantiation as a \textbf{retrieval test collection} in BEIR format~\citep{thakur2021beir} and provide sparse/dense retrieval baselines, enabling IR- and RAG-centric reuse.
+\end{enumerate}

@@ -1,0 +1,18 @@
+run_name: smoke
+
+artifacts_dir: ../artifacts
+cache_dir: ../cache
+
+llm:
+  concurrency: 8
+  model_chat: deepseek-chat
+  model_reasoner: deepseek-reasoner
+
+edgeqa:
+  candidate_passages: 5
+  qa_per_passage: 2
+  edge_tau: 0.0     # accept for smoke
+  final_N: 5
+
+equivalence:
+  use_llm: true

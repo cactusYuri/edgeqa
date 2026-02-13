@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+\textbf{Corpus} & \textbf{Rows} & Canon Acc. & Para Acc. & Para Cons. & Near-miss Acc. & Near-miss FPR \\
+\midrule
+OLP & 10052 & 0.636 & 0.606 & 0.489 & 0.548 & 0.453 \\
+OSP & 6575  & 0.686 & 0.659 & 0.662 & 0.436 & 0.565 \\
+\midrule
+ALL & 16627 & 0.656 & 0.627 & 0.558 & 0.504 & 0.496 \\
+\bottomrule
+\end{tabular}
+\caption{EdgeCoverBench robustness results using \texttt{qwen-plus}. Para Cons. is exact paraphrase-consistency among pairs where both the canonical and paraphrase are non-abstained. Near-miss FPR is the fraction of near-miss items the model answered (non-empty, non-abstain).}
+\label{tab:ecb_qwen}
+\end{table}
+

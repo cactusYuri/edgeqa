@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Corpus} & \textbf{N} & \textbf{DocCov} & \textbf{UnitCov} & \textbf{Unk. frac (qwen)} \\
+\midrule
+OLP & 10k & 0.775 & 0.690 & 0.507 \\
+OSP & 10k & 0.647 & 0.456 & 0.574 \\
+\bottomrule
+\end{tabular}
+\caption{Retargeting selection to \texttt{qwen-plus} by re-scoring unknownness on the existing candidate pool (no new QA generation). Unk. frac is the fraction where \texttt{qwen-plus} fails closed-book but succeeds with evidence (unknownness purity).}
+\label{tab:retarget_qwen_pool}
+\end{table}
+
