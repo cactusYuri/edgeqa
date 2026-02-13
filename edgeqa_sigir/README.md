@@ -4,7 +4,8 @@ This folder is a minimal ACM `acmart` (sigconf) project intended to help you mig
 
 ## Quick start
 
-- Main file: `main.tex`
+- Submission (6-page) file: `main.tex`
+- Longer draft (not for submission): `main_full_review.tex`
 - Sections: `sections/*.tex`
 - Bibliography: `references.bib`
 

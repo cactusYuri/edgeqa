@@ -1,0 +1,67 @@
+% Full draft (review mode) kept for internal iteration.
+% NOTE: This version is longer than the SIGIR Resources Track 6-page limit.
+
+\documentclass[sigconf,natbib=true,review]{acmart}
+% \documentclass[sigconf,natbib=true,review,anonymous=true]{acmart}
+
+\setcopyright{none}
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{enumitem}
+\usepackage{url}
+
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\title[EdgeQA]{EdgeQA: Model-Aware Synthesis of Unknown and Brittle Knowledge Questions from Unlabeled Text with Knowledge Coverage Evaluation}
+
+\author{Yuli Zhang}
+\affiliation{%
+  \institution{Beijing University of Posts and Telecommunications}
+  \city{Beijing}
+  \country{China}
+}
+\email{zhangyuli@bupt.edu.cn}
+\renewcommand{\shortauthors}{Zhang}
+
+\begin{abstract}
+Large language models (LLMs) perform well on many knowledge-intensive tasks, yet they remain unreliable in domains where their parametric knowledge is incomplete, long-tailed, or compositionally expressed.
+Existing synthetic question--answer (QA) pipelines largely optimize for scale or downstream fine-tuning gains, often producing questions whose answers are already known to the target model and offering limited diagnostics of how well a synthetic QA set represents the underlying corpus.
+We present \textbf{EdgeQA}, an \emph{API-only}, model-aware pipeline that converts unlabeled corpora into evidence-grounded QA pairs \emph{targeting unknown and brittle knowledge of a specified target model}.
+EdgeQA mines knowledge-rich passages, generates candidates with minimal evidence spans, scores unknownness and brittleness via closed-book failure and inconsistency signals (sampling and paraphrases), filters for grounding and ambiguity, and selects a budgeted subset to maximize \emph{document}, \emph{knowledge-unit}, and \emph{reasoning-type} coverage.
+We additionally introduce \textbf{EdgeCoverBench}, a coverage-aware stress-test benchmark with paraphrases, near-miss counterfactuals, and unanswerable items to evaluate robustness and abstention.
+In this resource release, we instantiate EdgeQA on two CC-BY textbooks (Open Logic Project; OpenStax University Physics), export BEIR-style retrieval test collections (queries/corpus/qrels), and provide a coverage-and-cost evaluation suite with token-budget curves under \textsc{DeepSeek-V3.2} (\texttt{deepseek-chat} / \texttt{deepseek-reasoner}) settings.
+\end{abstract}
+
+\keywords{information retrieval, evaluation, datasets, large language models, question answering}
+
+\begin{document}
+\maketitle
+
+\input{sections/1_introduction}
+\input{sections/2_related_work}
+\input{sections/3_edgeqa}
+\input{sections/4_edgecoverbench}
+\input{sections/5_experiments}
+\input{sections/6_availability}
+\input{sections/7_limitations}
+\input{sections/8_ethics}
+\input{sections/9_conclusion}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}
+
