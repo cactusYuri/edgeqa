@@ -6,7 +6,7 @@ This paper releases a model-aware QA resource family designed for \emph{coverage
   \item \textbf{EdgeQA builder:} an end-to-end pipeline to synthesize evidence-grounded QA pairs from an unlabeled corpus, targeting a specified black-box model's \emph{unknown} and \emph{brittle} knowledge.
   \item \textbf{Coverage evaluation toolkit:} document / knowledge-unit / reasoning-type coverage curves under QA and token budgets.
   \item \textbf{EdgeCoverBench:} a robustness benchmark derived from corpus units, with canonical, paraphrase, near-miss, and unanswerable items, supporting abstention and risk--coverage analysis.
-  \item \textbf{IR exports:} BEIR-style test collections (queries/corpus/qrels) created from evidence mappings.
+  \item \textbf{IR exports:} BEIR-style test collections (queries/corpus/qrels) created from evidence mappings~\citep{thakur2021beir}.
 \end{itemize}
 
 \section{EdgeQA in one page}
@@ -28,6 +28,7 @@ We report DocCov (fraction of passages exercised by evidence), UnitCov (fraction
 EdgeCoverBench is a unit-anchored stress-test benchmark constructed from the same corpora.
 For each canonical item, we generate meaning-preserving paraphrases and ``near-miss'' counterfactuals (minimal constraint edits) that become contradicted or unanswerable from the same evidence.
 This enables robustness measurement and abstention evaluation (risk--coverage curves) on a benchmark whose \emph{coverage} can be computed over corpus units.
+We connect abstention to selective classification via risk--coverage analysis~\citep{geifman2017selective} and adopt robustness diagnostics inspired by contrast sets and behavioral test suites~\citep{gardner2020contrastsets,ribeiro2020checklist}.
 
 \section{Released instantiations and validation}
 \label{sec:res_results}
