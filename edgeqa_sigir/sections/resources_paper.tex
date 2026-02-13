@@ -54,8 +54,9 @@ The released EdgeCoverBench contains 10,052 items for OLP (3,187 canonical; 6,37
 \paragraph{Human audit (C2).}
 To mitigate LLM-as-a-judge bias, we include a targeted manual audit for each corpus (100 EdgeQA items; 100 EdgeCoverBench items).
 For EdgeQA, answer correctness is 1.00 on both corpora with evidence support 1.00 (OSP) and 0.98 (OLP) and $\le$1\% ambiguity (Table~\ref{tab:human_audit_edgeqa}).
-EdgeCoverBench also achieves 1.00 meaning preservation on paraphrases and 1.00 validity for near-miss labels on both corpora; full audit sheets and scripts are released with the resource.
+EdgeCoverBench also achieves 1.00 meaning preservation on paraphrases and 1.00 validity for near-miss labels on both corpora (Table~\ref{tab:human_audit_ecb}); full audit sheets and scripts are released with the resource.
 \input{tables/tab_human_audit_edgeqa}
+\input{tables/tab_human_audit_edgecoverbench}
 
 \section{Availability (reviewer access)}
 \label{sec:res_avail}
@@ -63,6 +64,8 @@ EdgeCoverBench also achieves 1.00 meaning preservation on paraphrases and 1.00 v
 \textbf{Resource link:} \texttt{https://huggingface.co/datasets/cactusYuri/edgeqa-resource-release}.
 The resource is intended to be publicly accessible without login.
 We release: (i) corpus passages and structured units (\texttt{passages.jsonl}, \texttt{units.jsonl}), (ii) EdgeQA JSONL exports (\texttt{edgeqa\_N*.jsonl}), (iii) EdgeCoverBench (\texttt{edgecoverbench.jsonl}), (iv) BEIR exports (\texttt{queries.jsonl}, \texttt{corpus.jsonl}, \texttt{qrels.tsv}), (v) human audit sheets, and (vi) manifests with SHA-256 checksums.
+
+\textbf{Reproducibility:} we include prompt templates, configuration YAMLs, and cached intermediate artifacts and token logs to reproduce all reported figures/tables without re-running API calls.
 
 \textbf{Code link:} \texttt{https://github.com/cactusYuri/edgeqa} (Apache-2.0).
 Upstream corpora and evidence text are CC BY 4.0 with attribution preserved.
